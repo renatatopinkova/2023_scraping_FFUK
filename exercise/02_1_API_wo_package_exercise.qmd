@@ -1,0 +1,267 @@
+---
+title: "Nationalize and Genderize API exercise"
+author: "Renata Topinkova"
+format: html
+---
+
+
+## Load libraries
+As per usual, we start by loading our libraries. To access the APIs, we will be using `httr2` package, and to wrangle the data, we will use `tidyverse` packages. 
+
+Make sure to install the `httr2` package before loading it. 
+
+```{r libs}
+#install.packages("package_name")
+
+library(httr2)
+library(tidyverse)
+``` 
+
+## The APIs
+
+In this exercise, we will be using two very similar APIs - [Nationalize.io](https://nationalize.io/) and [Genderize.io](https://genderize.io/).
+
+
+- [Nationalize API](https://nationalize.io/) is "an API for predicting nationality from a name"
+- [Genderize API](https://genderize.io/) is "a simple API to predict the gender of a person given their name"
+
+You don't need any API tokens to access the free version either of the APIs. A free version in this case means a rate limit of a maximum 1000 names per day. 
+
+
+## Query API
+API: https://api.nationalize.io
+Parameters are organized as key - value pairs. See the allowed parameters in the API documentation.
+
+Let's start by setting up our endpoint inside `request()`
+
+```{r endpoints}
+# Specify the endpoint
+endpoint <- request("https://api.nationalize.io")
+
+```
+
+
+The second step is to specify the url query. 
+
+- `req_url_query` adds a `?` after our endpoint (unlike `req_url_path` which adds `/`), and then adds parameters constructed as key = value pairs. In this case, we want to query the `name` parameter
+- additional parameters are separated by `&` - we do not have to do this manually as `req_url_query` does it for us
+
+
+Before sending anything to the API, we can view the call we are about to send with `req_dry_run()` which shows us the call we are about to send.
+
+This is useful if you are not sure whether your call is correct and want to compare it to example API call from the documentation.
+
+Note that doing this will gather no data. 
+```{r}
+
+# Query the API
+endpoint %>% 
+  # specify the parameters for our query
+  req_url_query(name = "Renata") %>% 
+  # let's look what we would be sending to the API
+  req_dry_run()
+```
+
+
+
+Now that we have verified that our call looks correct, we can send our request to the API to gather some data. This is done with the `req_perform()`. 
+
+```{r}
+# Now, let's really query the API
+ren <- endpoint %>% 
+  # specify the parameters for our query - key = value pairs
+  req_url_query(name = "Renata") %>% 
+  # until we do req_perform, nothing is sent to the API
+  req_perform()
+
+
+# Explore what we've collected
+ren
+
+```
+--> Status 200 - ok, query successful
+
+
+### Parsing the content of our query
+We can view the raw JSON data by calling `resp_raw()`
+
+Also note that we have received more information about the API query. Among other things, we received information about **rate limits** of the `nationalize.io` API. The rate limit is 1000, by making this query, we are down to 999. We can also see how long (in seconds) it will take before our rate limit is restored. 
+
+This can be very useful, as `httr2` includes `req_throttle` which makes sure that repeated calls to the API never exceed a specific rate.
+
+```{r}
+resp_raw(ren)
+```
+
+To parse the content of the API response, we need one of the `resp_body_*`functions. Which one depends on the content type we have received. In our case, we know that the response is in JSON (Javascript object notation). 
+
+```{r}
+resp_body_json(ren)
+```
+By calling `resp_body_json()`, we have transformed our data into a `list`. We can look up the structure of our list, e.g., what variables are there, are any of them nested, etc., by calling `str` on the result of `resp_body_json()`
+
+```{r}
+resp_body_json(ren) %>% 
+  str()
+```
+We can see that our list contains two main variables - `country`, which is a list of 5, and each of those lists contains information about a country and associated probability of our name belonging to such country.
+
+That's a good start but maybe we would prefer to work with our data as a dataframe. 
+
+We can do this by passing the result of `resp_body_json()` into `as_tibble`, which will attempt to convert the list in a tidy dataframe, a tibble. 
+
+
+```{r}
+resp_body_json(ren) %>% 
+  as_tibble()
+```
+We now have a dataframe! Since the `country` column was originally 5 lists, we now have 5 rows in the table, but those rows are nested. The reason is because each of the lists within `country` contained two different variables, `country_id` and `probability`. 
+
+We are obviously interested in those variables, so let's `unnest` the `country` column! 
+
+We can `unnest` variable into a long format with `unnest_longer()` or into a wide format with `unnest_wider()`. Since we would like to have `country_id` and `probability` as new column names, we want to `unnest_wider()`. 
+
+```{r}
+ren_parsed <- resp_body_json(ren) %>% 
+  as_tibble() %>% 
+  unnest_wider(country)
+
+ren_parsed
+```
+Success!! Now we can use any `dplyr` functions we have learned before, or visualize our results with `ggplot2`! 
+
+
+
+## Your turn!
+
+### 1.1. Query: Your name.
+Query the Nationalize.io API (https://api.nationalize.io) to predict the nationality of your name. If you're not sure whether your query is correct, do a dry run with `req_dry_run()`
+
+Note: In case your name is not featured in the database, pick up a different name for this assignment.
+```{r}
+
+```
+
+
+Look up the status code of your request. Did it go through successfully?
+```{r}
+
+```
+
+
+Parse the data, so that you can get a dataframe that has no nested columns.
+```{r}
+
+```
+
+
+
+### 1.2. Query Genderize.io I: Name
+Look up the documentation for a new API https://genderize.io/
+Query the API to predict the gender for the name "Jessie".
+```{r}
+
+```
+
+
+Parse the response into a dataframe that has no nested columns.
+```{r}
+
+```
+
+
+### 1.3. Query Genderize.io II: Name & Country
+
+Query the API https://genderize.io/ to predict the gender for the name "Jessie" in the US and the UK. Is there any difference? 
+
+Note: You will have to submit two queries. Make sure to assign them to new objects, `jessie_us` and `jessie_uk`
+
+Hint: Look up the country codes in the documentation (in `our data`). 
+```{r}
+
+```
+
+
+Parse the responses into a dataframes that have no nested columns. 
+```{r}
+
+```
+
+Use `bind_rows` to bind the two objects into one dataframe with 2 rows, one for US and one for the UK.
+
+Note: Look up the help (`?bind_rows`) for the function to see how to use it. 
+```{r}
+
+```
+
+
+
+
+## BONUS: Query more than one name --> Things are complicating... 
+In this bonus exercise, we are going to query Genderize.io again. But this time, we want to get multiple names inside one API request. 
+
+Look up the documentation for the API to see the example call to get more than one name. Pick any names you like (or don't like!). Make a query.
+
+```{r}
+
+```
+
+It most does not work, right? 
+
+Well, R does not like having [] as a part of "variable" names (in this case key names), so we will have to work around that a little. You can either put the name[] inside backticks `name[]` or inside quotation marks "name[]". Try it out and assign it to a new object, `more_names`.
+
+```{r}
+more_names <- #### replace with your code
+```
+
+Now, let's try to parse the data like we have done before. Try to convert the response you received in the previous code chunk into a tibble.
+```{r}
+
+```
+
+Error again! 
+
+Let's explore why that may be. Let's look at the structure of our data. 
+```{r}
+more_names_list <- resp_body_json(more_names) 
+
+str(more_names_list)
+```
+
+You can see that we have two (or more, based on how many names you have queried) main lists. One for each name, and each of those lists contains a country, which contains country_id and probability for a given name. 
+
+You can verify this by looking up the first list alone. You can access a list by using double brackets `[[]]` with the index of the list. If you want to see the first list, you can do it with `[[1]]`
+
+Try it out: 
+```{r}
+more_names_list[[1]]
+```
+
+
+We thus need to make a tibble out of all our lists. We can do this by using `map_df` from the `purrr` package. All `map*` functions transform the input by applying a function to **each element** of a list (or a vector). In this case, we want to apply `as_tibble` to each of our lists. 
+
+You can verify this approach will work by trying `as_tibble` on the first list. 
+
+```{r}
+as_tibble(more_names_list[[1]])
+```
+
+This works! Now, what `map_df(as_tibble)` does is:
+
+- it applies `as_tibble` on the first list (the data for the first name you queried), converting it into a tibble
+- then, it applies `as_tibble` on the second list (the data for the second name you queried), converting it to a tibble too
+- repeats it for any other lists (names you have queried)
+- this results in two (or more, based on the number of names you queried) lists that contain tibbles (this is what `map` would have returned) with the data. But, since we use `map_df` which outputs a dataframe and not a list, it converts our whole output into a dataframe!
+
+Try it out: 
+```{r}
+more_names_list %>% 
+  map_df(as_tibble)
+```
+
+
+That's better! Now we just need to unnest our data again!
+```{r}
+
+```
+

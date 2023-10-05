@@ -1,0 +1,191 @@
+---
+title: "APIs with packages"
+format: html
+editor: visual
+self-contained: true
+---
+
+## The Guardian API
+
+### 1.1. Getting your token
+
+1️⃣ Go to <https://open-platform.theguardian.com/access/>
+
+![](../img/guardian_token_access.png)
+
+2️⃣ Apply for the `Developer key`
+
+-   put `Student project` as the reason for key
+
+-   put something like `API retrieval class` into explanation
+
+3️⃣ Check your email for the key
+
+4️⃣ Create a `guardian_key.txt` where you store the key you received, make sure to store it in your project
+
+-   💡You can create new `.txt` file in R by clicking on `File -> New File -> Text file`
+
+![](../img/guardian_key.png)
+
+### 1.2. Load libraries
+
+💡 Make sure to install the `guardianapi` package before using it.
+
+```{r}
+library(guardianapi)
+library(tidyverse)
+```
+
+### 1.3. Load in the token from a file
+
+Load the token you have received from [The Guardian API](https://open-platform.theguardian.com/access/) to R.
+
+*Note: Make sure your .txt file is inside your project, so R can see it.*
+
+```{r}
+key <- readLines("guardian_key.txt")
+```
+
+**If this step is failing for you, make sure that..**
+
+-   Your `guardian_key.txt` is inside your current project, so R can see it
+
+-   You are spelling the file name correctly
+
+-   You have copied the key exactly as you received it in your email (i.e., no typos, additional spaces, etc.)
+
+-   😭 Help, I am getting this error:
+
+    ```         
+    Warning: incomplete final line found on 'guardian_key.txt'
+    ```
+
+    Solution: Open the `guardian_key.txt` and add an empty line after the string with your key (i..e, hit Enter and save your file)
+
+### 1.4. Initialize the token
+
+We first create the API key as an environment variable in R with `Sys.setenv()` and then register it for the `guardianapi` package through the `gu_api_key()` function.
+
+Now, every time you call functions from the `guardianapi` package, your key is automatically used within the function.
+
+```{r}
+Sys.setenv(GU_API_KEY = key)
+gu_api_key(check_env = TRUE) 
+```
+
+### 1.5. Get some data
+
+-   You can find the available functions inside the `guardianapi` [vignette](https://cran.r-project.org/web/packages/guardianapi/guardianapi.pdf).
+
+-   Additional info regarding parameters and endpoints can be found in the [Guardian API documentation](https://open-platform.theguardian.com/documentation/).
+
+Let's gather some data about relationships.
+
+```{r}
+# Retrieve news articles based on a specific topic
+# Get articles mentioning dating
+articles <- gu_content(query = 'dating',
+             from_date = '2023-06-22', 
+             to_date = '2023-10-04')  
+
+```
+
+### 1.6. Explore the data
+
+```{r}
+glimpse(articles)
+head(articles)
+```
+
+Look at the full body of the first article
+
+```{r}
+articles |> 
+  pull(body_text) |> 
+  head(1)
+```
+
+### 1.7. Narrow your search down: tags
+
+> A tag is a piece of data that we use to categorise our content.
+>
+> All Guardian content is manually categorised using these tags, of which there are more than 50,000.
+
+We can see the associated tags with our query by using `gu_tags()` function:
+
+```{r}
+gu_tags("relationships", tag_type = "keyword")
+```
+
+This information can be used to narrow down the search for the articles later
+
+```{r}
+articles_narrowed <- gu_content(query = 'relationships',
+             from_date = '2023-06-22', 
+             to_date = '2023-10-04',
+             # gather only articles that contain the tag 
+             tag = "lifeandstyle/relationships")  
+
+```
+
+Visualize it
+
+```{r}
+library(tidytext)
+
+articles_narrowed |>
+  unnest_tokens(word, body_text) |>
+  anti_join(tidytext::stop_words) |>
+  count(word, sort = T) |>
+  head(15) |>
+  ggplot(aes(x = n, y = reorder(word, n))) +
+  geom_col() + 
+  labs(x = "Count", y = "") +
+  theme_minimal()
+```
+
+### 2. Independent work
+
+#### 2.1. Gather data
+
+Use the `gu_content()` function to download publications mentioning Ukraine. Restrict the data to February 2022. If necessary, restrict the tags used.
+
+```{r}
+
+```
+
+#### 2.2. Keep only articles
+
+Remove all texts that do not correspond to the type 'article' and check whether the articles match your search topic.
+
+```{r}
+
+```
+
+#### 2.3. Save the data
+
+Save the data in .csv format on your computer with the `write_csv()` command.
+
+```{r}
+
+```
+
+### Bonus exercises
+
+#### 2.4. Visualize article counts per day.
+
+*Hint: You can extract the days by loading the `lubridate` package, and using: `mutate(new_column_name = date(date_column_name)` Make sure to replace `new_column_name` and `date_column_name` with your own values.*
+
+```{r}
+
+```
+
+#### 2.5. Look up most used words
+
+Make sure you load the `tidytext` package for this.
+
+```{r}
+
+```
+
+Keep exploring!

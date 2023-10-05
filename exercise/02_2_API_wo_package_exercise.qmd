@@ -1,0 +1,133 @@
+---
+title: "Omdb API exercise"
+author: "Renata Topinkova"
+format: html
+---
+
+## Load libraries
+```{r libs}
+library(httr2)
+library(tidyverse)
+``` 
+
+In this exercise, you will be working with the [Omdb (Open Movie Database) API](https://www.omdbapi.com/). 
+
+> The OMDb API is a RESTful web service to obtain movie information, all content and images on the site are contributed and maintained by our users.
+
+
+We can see in the API documentation that this is a quite simple API with not many parameters. However, there is still the requirement to get an API key. 
+
+
+On the main page, we can see that all queries should be sent in the following format: 
+```http://www.omdbapi.com/?apikey=[yourkey]&```
+
+So let's get our api key and get our queries into the right format!
+
+
+## Endpoint & apikey
+Get to the Omdb API website: https://www.omdbapi.com/
+- Apply for a free API token: https://www.omdbapi.com/apikey.aspx
+  - Select Account type: Free
+- Once you receive your API key via email, create a new `.txt` file called `omdb_key.txt` and place it into your project. 
+
+Let's assign our api key into a new environment variable. Make sure to replace the `####` in the code chunk with your api key. 
+```{r}
+
+omdb_key <- readLines("omdb_key.txt")
+
+Sys.setenv("OMDB" = omdb_key)
+```
+
+
+Now, to avoid writing our api key directly into the code, we can use `paste0` to kind of *glue* the API endpoint and our key together. 
+
+`paste0` is a simple function that puts together two (or more!) strings without adding any additional characters between the strings. There are also other versions such as `paste` which by default adds a space (` `), or other characters if you specify them by the `sep` parameter.
+
+You can try out what the result of the `paste0` with our environment variable looks like:
+```{r}
+paste0("http://www.omdbapi.com/?apikey=", Sys.getenv("OMDB"))
+```
+
+
+
+Now, let's put our new string as a `request`! This will be our starting point with the API. 
+
+You can use the `req` object it in subsequent calls, so you don't have to keep copying the `request()` function. This way, we don't have to keep adding our apikey into every `req_url_query`
+
+```{r endpoints}
+req <- request(paste0("http://www.omdbapi.com/?apikey=", Sys.getenv("OMDB")))
+
+```
+
+
+Look up which parameters are allowed with the Omdb API. This will tell us what kind of information we can request from the API. 
+
+
+## Your turn!
+
+### 1. Find out which movie has id "tt0425112"
+```{r}
+
+```
+
+
+#### 1.2. Parse the response into a dataframe. 
+```{r}
+
+```
+
+
+Strangely, we received **THREE** rows of data instead of one! Try figuring our **WHY** this happened. Inspect the `str`ucture of the parsed dataframe you have created. Do you see where the issue may be? 
+```{r}
+
+```
+
+
+
+### 2. Get the full plot of the mystery movie that from ex. 1 
+Note: You will need to do a new API query with additional parameter.
+```{r}
+
+```
+
+#### 2.1. Print out the full plot of the mystery movie into a console
+```{r}
+
+```
+
+
+### 3. Find movies that have "dog" in their title. 
+
+Note: There should be more than one. 
+```{r}
+
+
+
+```
+
+### 3.1. Parse the "dog" movies
+Parse the response into a new dataframe, assign it to a new object. Unnest columns if needed.
+```{r}
+
+```
+
+
+### BONUS 1: Get more "dog" movies. 
+In the previous exercise, we only got 10 movies. Surely there must be more! 
+
+Look into the API documentation. Which parameter you could use to get additional results? 
+```{r}
+
+```
+
+It would be tiresome to get all the dog movies this way. Luckily, that's what **loops** are for - so we can get all our dogs next week.
+
+
+
+### BONUS 2: Bind the results from exercise 3 and the Bonus 1 exercise into one dataframe.
+
+We want to have our dogs in one dataframe, so we can look them all up. Find a way to do it - There are many solutions from different packages, so don't be afraid to experiment!
+```{r}
+
+```
+
